@@ -36,23 +36,19 @@ ok "JetBrainsMono Nerd Font installed"
 
 # ── i3wm ──────────────────────────────────────────────────────
 section "i3wm"
-sudo apt install -y i3 i3status rofi dunst picom feh
+sudo apt install -y i3 i3status rofi picom feh i3lock pasystray pamixer
 mkdir -p ~/.config/i3
 
 cat >~/.config/i3/config <<'EOF'
-# i3 config — mirrors Aerospace keybinds
-# Modifier: Alt (Mod1)
-set $mod Mod1
+# i3 config
+# Modifier: Super (Mod4 / Windows key)
+set $mod Mod4
 
 font pango:JetBrainsMono Nerd Font 10
 
 # Auto-start
 exec --no-startup-id picom --daemon
-exec --no-startup-id dunst
-
-# Gaps (built-in i3 4.22+)
-gaps inner 8
-gaps outer 8
+exec --no-startup-id pasystray
 
 # Borders
 default_border pixel 2
@@ -106,7 +102,7 @@ bindsym $mod+b split horizontal
 # Close window
 bindsym $mod+shift+q kill
 
-# App launcher (rofi = Spotlight equivalent)
+# App launcher
 bindsym $mod+d exec rofi -show drun -show-icons
 
 # Terminal
@@ -127,8 +123,21 @@ mode "resize" {
 }
 bindsym $mod+r mode "resize"
 
-# Screenshots with Flameshot
+# Screenshots
 bindsym Print exec flameshot gui
+
+# Lock screen
+bindsym $mod+shift+x exec i3lock -c 1e2030
+
+# Move workspace to monitors
+bindsym $mod+shift+greater move workspace to output right
+bindsym $mod+shift+less move workspace to output left
+
+# Volume control
+bindsym XF86AudioRaiseVolume exec ~/.local/bin/volume.sh up
+bindsym XF86AudioLowerVolume exec ~/.local/bin/volume.sh down
+bindsym XF86AudioMute exec ~/.local/bin/volume.sh mute
+bindsym XF86AudioMicMute exec ~/.local/bin/volume.sh micmute
 
 # Status bar
 bar {
@@ -153,6 +162,7 @@ cat >~/.config/i3status/config <<'EOF'
 general {
   colors = true
   interval = 2
+  output_format  = "i3bar"
   color_good     = "#a6da95"
   color_degraded = "#eed49f"
   color_bad      = "#ed8796"
@@ -164,10 +174,47 @@ order += "disk /"
 order += "tztime local"
 
 cpu_usage    { format = " CPU %usage" }
-memory       { format = " MEM %used_mem" threshold_degraded = "10%" }
+memory {
+  format             = " MEM %used"
+  threshold_degraded = "10%"
+}
 disk "/"     { format = " %avail" }
 tztime local { format = " %a %d %b  %H:%M" }
 EOF
+
+# volume script
+mkdir -p ~/.local/bin
+cat >~/.local/bin/volume.sh <<'EOF'
+#!/bin/bash
+case "$1" in
+  up)      pamixer -i 5 ;;
+  down)    pamixer -d 5 ;;
+  mute)    pamixer -t ;;
+  micmute) pamixer --default-source -t ;;
+esac
+
+if [ "$1" = "micmute" ]; then
+  MICMUTE=$(pamixer --default-source --get-mute)
+  if [ "$MICMUTE" = "true" ]; then
+    dunstify -r 9998 -t 1500 "󰍭 Mic Muted"
+  else
+    dunstify -r 9998 -t 1500 "󰍬 Mic Active"
+  fi
+else
+  VOL=$(pamixer --get-volume)
+  MUTE=$(pamixer --get-mute)
+  if [ "$MUTE" = "true" ]; then
+    dunstify -r 9999 -t 1500 "󰖁 Muted"
+  elif [ "$VOL" -ge 70 ]; then
+    dunstify -r 9999 -t 1500 "󰕾 Volume: ${VOL}%"
+  elif [ "$VOL" -ge 40 ]; then
+    dunstify -r 9999 -t 1500 "󰖀 Volume: ${VOL}%"
+  else
+    dunstify -r 9999 -t 1500 "󰕿 Volume: ${VOL}%"
+  fi
+fi
+EOF
+chmod +x ~/.local/bin/volume.sh
 ok "i3wm configured"
 
 # ── Ghostty ───────────────────────────────────────────────────
