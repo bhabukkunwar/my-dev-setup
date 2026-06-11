@@ -179,4 +179,16 @@ else
 fi
 EOF
 chmod +x ~/.local/bin/volume.sh
+# Touchpad: natural scroll + tap to click
+sudo mkdir -p /etc/X11/xorg.conf.d
+sudo tee /etc/X11/xorg.conf.d/30-touchpad.conf << 'EOF'
+Section "InputClass"
+  Identifier "touchpad"
+  Driver "libinput"
+  MatchIsTouchpad "on"
+  Option "NaturalScrolling" "true"
+  Option "Tapping" "on"
+  Option "TappingButtonMap" "lrm"
+EndSection
+EOF
 ok "i3wm configured"
